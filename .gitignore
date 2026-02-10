@@ -46,3 +46,17 @@ htmlcov
 #log
 *.log
 tests/*.log
+=======
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+*.pywz
+*.pyzz
+.venv/
+__pycache__/
+poetry.lock
+.pytest_cache/
+tests/
+
