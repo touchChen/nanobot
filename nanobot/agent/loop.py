@@ -198,6 +198,8 @@ class AgentLoop:
                 model=self.model
             )
             
+            logger.info(f"chat of {iteration} times: content length={len(response.content)} tool_calls={len(response.tool_calls)}")
+            
             # Handle tool calls
             if response.has_tool_calls:
                 # Add assistant message with tool calls
@@ -226,6 +228,7 @@ class AgentLoop:
                         messages, tool_call.id, tool_call.name, result
                     )
             else:
+                logger.info(f"No tool call")
                 # No tool calls, we're done
                 final_content = response.content
                 break
