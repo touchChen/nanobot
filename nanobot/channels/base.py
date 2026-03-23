@@ -1,6 +1,9 @@
 """Base channel interface for chat platforms."""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Any
 
 from loguru import logger
@@ -18,6 +21,8 @@ class BaseChannel(ABC):
     """
 
     name: str = "base"
+    display_name: str = "Base"
+    transcription_api_key: str = ""
 
     def __init__(self, config: Any, bus: MessageBus):
         """
@@ -30,6 +35,19 @@ class BaseChannel(ABC):
         self.config = config
         self.bus = bus
         self._running = False
+
+    async def transcribe_audio(self, file_path: str | Path) -> str:
+        """Transcribe an audio file via Groq Whisper. Returns empty string on failure."""
+        if not self.transcription_api_key:
+            return ""
+        try:
+            from nanobot.providers.transcription import GroqTranscriptionProvider
+
+            provider = GroqTranscriptionProvider(api_key=self.transcription_api_key)
+            return await provider.transcribe(file_path)
+        except Exception as e:
+            logger.warning("{}: audio transcription failed: {}", self.name, e)
+            return ""
 
     @abstractmethod
     async def start(self) -> None:
@@ -59,29 +77,14 @@ class BaseChannel(ABC):
         pass
 
     def is_allowed(self, sender_id: str) -> bool:
-        """
-        Check if a sender is allowed to use this bot.
-
-        Args:
-            sender_id: The sender's identifier.
-
-        Returns:
-            True if allowed, False otherwise.
-        """
+        """Check if *sender_id* is permitted.  Empty list → deny all; ``"*"`` → allow all."""
         allow_list = getattr(self.config, "allow_from", [])
-
-        # If no allow list, allow everyone
         if not allow_list:
+            logger.warning("{}: allow_from is empty — all access denied", self.name)
+            return False
+        if "*" in allow_list:
             return True
-
-        sender_str = str(sender_id)
-        if sender_str in allow_list:
-            return True
-        if "|" in sender_str:
-            for part in sender_str.split("|"):
-                if part and part in allow_list:
-                    return True
-        return False
+        return str(sender_id) in allow_list
 
     async def _handle_message(
         self,
@@ -124,6 +127,11 @@ class BaseChannel(ABC):
         )
 
         await self.bus.publish_inbound(msg)
+
+    @classmethod
+    def default_config(cls) -> dict[str, Any]:
+        """Return default config for onboard. Override in plugins to auto-populate config.json."""
+        return {"enabled": False}
 
     @property
     def is_running(self) -> bool:
