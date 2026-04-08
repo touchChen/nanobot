@@ -53,6 +53,7 @@ tests/*.log
 .assets
 .docs
 .env
+.web
 *.pyc
 dist/
 build/
