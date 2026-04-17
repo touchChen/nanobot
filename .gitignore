@@ -1,146 +1,95 @@
-*.py[co]
-
-*.swp
-# Packages
-*.egg
-*.egg-info
-dist
-build
-eggs
-parts
-bin
-var
-sdist
-develop-eggs
-.installed.cfg
-
-# Installer logs
-pip-log.txt
-
-# Unit test / coverage reports
-htmlcov
-.coverage*
-.tox
-
-#Translations
-*.mo
-
-#Mr Developer
-.mr.developer.cfg
-
-.DS_Store
-.idea
-
-#Emacs
-.#*
-
-#develop tool
-## eclise
-.project
-.pydevproject
-.settings
-.settings/*
-
-## vscode
-.vscode
-.vscode/*
-
-#log
-*.log
-tests/*.log
-
-
-# Project-specific
-.worktrees/
-.assets
-.docs
-.env
-.web
-.orion
-
-# Python bytecode & caches
-*.pyc
-*.pyo
-*.pyd
-*.pyw
-*.pyz
+# =========================
+# Python
+# =========================
 __pycache__/
-*.egg-info/
-*.egg
+*.py[cod]
+*.pyd
+*.pyz
+
+# Virtual environments
 .venv/
 venv/
+
+# Packaging
+build/
+dist/
+*.egg
+*.egg-info/
+pip-wheel-metadata/
+
+# =========================
+# Testing & coverage
+# =========================
 .pytest_cache/
-
-
-
-
-
-nano.*.save
-.DS_Store
-.mypy_cache/
-.ruff_cache/
-.pytype/
-.dmypy.json
-dmypy.json
 .tox/
 .nox/
 .hypothesis/
-
-# Build & packaging
-dist/
-build/
-*.manifest
-*.spec
-pip-wheel-metadata/
-share/python-wheels/
-
-# Test & coverage
-.coverage
-.coverage.*
+.coverage*
 htmlcov/
 coverage.xml
 *.cover
 
-# Lock files (project policy)
-poetry.lock
-uv.lock
+# =========================
+# Type checking / lint
+# =========================
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.dmypy.json
 
-# Jupyter
-.ipynb_checkpoints/
-
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Windows
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-
-# Linux
-.directory
-
-# Editors & IDEs (local workspace / user settings)
-.vscode/
-.cursor/
-.idea/
-.fleet/
-*.code-workspace
-*.sublime-project
-*.sublime-workspace
-*.swp
-*.swo
-*~
-nano.*.save
-
-# Environment & secrets (keep examples tracked if needed)
-.env.*
-!.env.example
-
+# =========================
 # Logs & temp
+# =========================
 *.log
 logs/
 tmp/
 temp/
 *.tmp
+tests/*.log
+
+# =========================
+# Environment
+# =========================
+.env*
+!.env.example
+
+# =========================
+# Jupyter
+# =========================
+.ipynb_checkpoints/
+
+# =========================
+# Editors / IDE
+# =========================
+.vscode/
+.idea/
+.cursor/
+.fleet/
+*.swp
+*.swo
+*~
+nano.*.save
+
+# Eclipse
+.project
+.pydevproject
+.settings/
+
+# =========================
+# OS files
+# =========================
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+Desktop.ini
+.directory
+
+# =========================
+# Project-specific
+# =========================
+.worktrees/
+.assets
+.docs
+.web
+.orion
