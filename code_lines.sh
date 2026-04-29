@@ -92,13 +92,32 @@ echo "  - skills/ counts .md, .py, and .sh files"
 echo "  - not included here: command/, providers/, security/, templates/, nanobot.py, root files"
 
 
+nanobot=$(count_recursive_py_lines "nanobot") # top-level .py files under nanobot/
+
+
 echo ""
 echo ""
 echo ""
-echo "All python files"
+echo "Nanobot"
+echo "------"
+print_row "nanobot total" "$nanobot"
+
+echo ""
+echo ""
+echo ""
+echo "All python files of nanobot"
 echo "-----"
 total=$(find nanobot -name "*.py" | xargs cat | wc -l)
 echo "  python total:     $total lines"
+echo ""
+
+echo ""
+echo ""
+echo ""
+echo "tests"
+echo "-----"
+tests=$(find tests -name "*.py" | xargs cat | wc -l)
+echo "  tests total:     $tests lines"
 echo ""
 
 
