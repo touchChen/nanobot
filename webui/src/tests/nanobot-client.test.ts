@@ -20,7 +20,7 @@ class FakeSocket {
   onopen: (() => void) | null = null;
   onmessage: ((ev: MessageEvent) => void) | null = null;
   onerror: (() => void) | null = null;
-  onclose: (() => void) | null = null;
+  onclose: ((ev?: { code?: number }) => void) | null = null;
 
   constructor(url: string) {
     this.url = url;
@@ -34,6 +34,13 @@ class FakeSocket {
   close() {
     this.readyState = FakeSocket.CLOSED;
     this.onclose?.();
+  }
+
+  /** Simulate a server-initiated drop with a specific wire-level close code
+   * (e.g. ``1009`` for Message Too Big). */
+  fakeCloseWithCode(code: number) {
+    this.readyState = FakeSocket.CLOSED;
+    this.onclose?.({ code });
   }
 
   fakeOpen() {
@@ -82,6 +89,26 @@ describe("NanobotClient", () => {
     });
   });
 
+  it("dispatches runtime model updates globally", () => {
+    const client = new NanobotClient({
+      url: "ws://test",
+      reconnect: false,
+      socketFactory: (url) => new FakeSocket(url) as unknown as WebSocket,
+    });
+    const handler = vi.fn();
+    client.onRuntimeModelUpdate(handler);
+    client.connect();
+    lastSocket().fakeOpen();
+
+    lastSocket().fakeMessage({
+      event: "runtime_model_updated",
+      model_name: "openai/gpt-4.1",
+      model_preset: "fast",
+    });
+
+    expect(handler).toHaveBeenCalledWith("openai/gpt-4.1", "fast");
+  });
+
   it("resolves newChat() via the server-assigned chat_id", async () => {
     const client = new NanobotClient({
       url: "ws://test",
@@ -109,7 +136,34 @@ describe("NanobotClient", () => {
     // Attach is sent first because sendMessage adds to knownChats, which
     // handleOpen re-attaches; then the queued message follows.
     expect(lastSocket().sent).toContain(
-      JSON.stringify({ type: "message", chat_id: "chat-x", content: "hello" }),
+      JSON.stringify({ type: "message", chat_id: "chat-x", content: "hello", webui: true }),
+    );
+  });
+
+  it("includes image generation options in outbound messages", () => {
+    const client = new NanobotClient({
+      url: "ws://test",
+      reconnect: false,
+      socketFactory: (url) => new FakeSocket(url) as unknown as WebSocket,
+    });
+    client.connect();
+    lastSocket().fakeOpen();
+
+    client.sendMessage(
+      "chat-img",
+      "draw a banner",
+      undefined,
+      { imageGeneration: { enabled: true, aspect_ratio: "16:9" } },
+    );
+
+    expect(lastSocket().sent).toContain(
+      JSON.stringify({
+        type: "message",
+        chat_id: "chat-img",
+        content: "draw a banner",
+        image_generation: { enabled: true, aspect_ratio: "16:9" },
+        webui: true,
+      }),
     );
   });
 
@@ -170,6 +224,97 @@ describe("NanobotClient", () => {
     // "reconnecting" must never appear after an intentional close.
     expect(seen).not.toContain("reconnecting");
     expect(seen.at(-1)).toBe("closed");
+  });
+
+  it("passes media through into the message envelope", () => {
+    const client = new NanobotClient({
+      url: "ws://test",
+      reconnect: false,
+      socketFactory: (url) => new FakeSocket(url) as unknown as WebSocket,
+    });
+    client.connect();
+    lastSocket().fakeOpen();
+    client.sendMessage("chat-x", "look", [
+      { data_url: "data:image/png;base64,AAAA", name: "shot.png" },
+    ]);
+    const lastFrame = JSON.parse(lastSocket().sent.at(-1) as string);
+    expect(lastFrame).toEqual({
+      type: "message",
+      chat_id: "chat-x",
+      content: "look",
+      media: [{ data_url: "data:image/png;base64,AAAA", name: "shot.png" }],
+      webui: true,
+    });
+  });
+
+  it("omits media from the envelope when no images are attached", () => {
+    const client = new NanobotClient({
+      url: "ws://test",
+      reconnect: false,
+      socketFactory: (url) => new FakeSocket(url) as unknown as WebSocket,
+    });
+    client.connect();
+    lastSocket().fakeOpen();
+    client.sendMessage("chat-x", "hello");
+    const lastFrame = JSON.parse(lastSocket().sent.at(-1) as string);
+    expect(lastFrame).not.toHaveProperty("media");
+    expect(lastFrame).toEqual({
+      type: "message",
+      chat_id: "chat-x",
+      content: "hello",
+      webui: true,
+    });
+  });
+
+  it("emits a message_too_big error when the socket closes with code 1009", () => {
+    const client = new NanobotClient({
+      url: "ws://test",
+      reconnect: false,
+      socketFactory: (url) => new FakeSocket(url) as unknown as WebSocket,
+    });
+    const errors: Array<{ kind: string }> = [];
+    client.onError((e) => errors.push(e));
+    client.connect();
+    lastSocket().fakeOpen();
+    // Server rejected an outbound frame as too large.
+    lastSocket().fakeCloseWithCode(1009);
+    expect(errors).toEqual([{ kind: "message_too_big" }]);
+  });
+
+  it("isolates throwing error handlers so reconnect bookkeeping still runs", async () => {
+    const client = new NanobotClient({
+      url: "ws://test",
+      reconnect: true,
+      maxBackoffMs: 5,
+      socketFactory: (url) => new FakeSocket(url) as unknown as WebSocket,
+    });
+    // First handler explodes; subsequent reconnect state must be untouched.
+    client.onError(() => {
+      throw new Error("subscriber blew up");
+    });
+    const seenStatuses: string[] = [];
+    client.onStatus((s) => seenStatuses.push(s));
+    client.connect();
+    lastSocket().fakeOpen();
+    lastSocket().fakeCloseWithCode(1009);
+    // Despite the throwing handler, the client must still schedule a reconnect.
+    expect(seenStatuses).toContain("reconnecting");
+    await vi.advanceTimersByTimeAsync(20);
+    expect(FakeSocket.instances.length).toBeGreaterThan(1);
+  });
+
+  it("does not emit a stream error on a vanilla socket close", () => {
+    const client = new NanobotClient({
+      url: "ws://test",
+      reconnect: false,
+      socketFactory: (url) => new FakeSocket(url) as unknown as WebSocket,
+    });
+    const errors: Array<{ kind: string }> = [];
+    client.onError((e) => errors.push(e));
+    client.connect();
+    lastSocket().fakeOpen();
+    lastSocket().close();
+    expect(errors).toEqual([]);
   });
 
   it("surfaces 'reconnecting' only on an unexpected drop", async () => {

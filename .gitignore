@@ -2,15 +2,11 @@
 # Python
 # =========================
 __pycache__/
-*.py[cod]
-*.pyd
-*.pyz
+*.py[codz]
 
-# Virtual environments
-.venv/
-venv/
-
+# =========================
 # Packaging
+# =========================
 build/
 dist/
 *.egg
@@ -54,6 +50,12 @@ tests/*.log
 !.env.example
 
 # =========================
+# Virtual environments
+# =========================
+.venv/
+venv/
+
+# =========================
 # Jupyter
 # =========================
 .ipynb_checkpoints/
@@ -76,6 +78,12 @@ nano.*.save
 .settings/
 
 # =========================
+# Claude / AI assistant artifacts
+# =========================
+docs/superpowers/
+docs/plans/
+
+# =========================
 # OS files
 # =========================
 .DS_Store
@@ -89,20 +97,23 @@ Desktop.ini
 # Project-specific
 # =========================
 .worktrees/
+.worktree/
 .assets
 .docs
 .env
 .web
 .orion
 
+
 # =========================
 # webui (monorepo frontend)
 # =========================
-
 webui/node_modules/
 webui/dist/
 webui/coverage/
 webui/.vite/
 webui/bun.lock
 *.tsbuildinfo
+
+
 

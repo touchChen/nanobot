@@ -128,6 +128,18 @@ All frames are JSON text. Each message has an `event` field.
 }
 ```
 
+**`runtime_model_updated`** — broadcast when the gateway runtime model changes, for example after `/model <preset>`:
+
+```json
+{
+  "event": "runtime_model_updated",
+  "model_name": "openai/gpt-4.1-mini",
+  "model_preset": "fast"
+}
+```
+
+`model_preset` is omitted when no named preset is active. WebUI clients use this event to keep the displayed model badge in sync across slash commands, config reloads, and settings changes.
+
 **`attached`** — confirmation for `new_chat` / `attach` inbound envelopes (see [Multi-chat multiplexing](#multi-chat-multiplexing)):
 
 ```json
@@ -176,7 +188,7 @@ All fields go under `channels.websocket` in `config.json`.
 | `host` | string | `"127.0.0.1"` | Bind address. Use `"0.0.0.0"` to accept external connections. |
 | `port` | int | `8765` | Listen port. |
 | `path` | string | `"/"` | WebSocket upgrade path. Trailing slashes are normalized (root `/` is preserved). |
-| `maxMessageBytes` | int | `1048576` | Maximum inbound message size in bytes (1 KB – 16 MB). |
+| `maxMessageBytes` | int | `37748736` | Maximum inbound message size in bytes (1 KB – 40 MB). Default (36 MB) is sized to accept up to 4 base64-encoded image attachments at 8 MB each; lower it if the channel only carries text. |
 
 ### Authentication
 
